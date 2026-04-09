@@ -971,7 +971,7 @@
         };
 
         // Helper Functions
-        function switchTab(tabName) {
+        function switchTab(tabName, clickedBtn) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -983,7 +983,7 @@
             // Show selected tab
             document.getElementById(tabName).classList.add('active');
             // Add active class to clicked button
-            event.target.classList.add('active');
+            if (clickedBtn) clickedBtn.classList.add('active');
         }
 
         function loadSample(type) {
@@ -1088,19 +1088,25 @@
             // Parse markdown content
             const parseMarkdown = (text) => {
                 if (!text) return '';
-                // Convert markdown to HTML
                 let html = marked.parse(text);
                 return html;
             };
 
+            // Normalize: handle both {sections: {...}} and flat {...} formats
+            const s = result.sections || result;
+
             // Set content
-            document.getElementById('resultSummary').innerHTML = parseMarkdown(result.sections.summary || result.summary || '');
-            document.getElementById('resultIssues').innerHTML = parseMarkdown(result.sections.issues || result.issues || '');
-            document.getElementById('resultReviewPoints').innerHTML = parseMarkdown(result.sections.review_points || result.review_points || '');
-            document.getElementById('resultPenalty').innerHTML = parseMarkdown(result.sections.review_penalty || result.review_penalty || '');
-            document.getElementById('resultQuestions').innerHTML = parseMarkdown(result.sections.questions || result.questions || '');
-            document.getElementById('resultReply').innerHTML = parseMarkdown(result.sections.reply_draft || result.sections.direction || result.direction || '') +
-                                                             (result.sections.reply_draft && result.sections.direction ? '<hr style="margin: 20px 0; border: none; border-top: 2px solid var(--gray-200);">' + parseMarkdown(result.sections.reply_draft) : '');
+            document.getElementById('resultSummary').innerHTML = parseMarkdown(s.summary || '');
+            document.getElementById('resultIssues').innerHTML = parseMarkdown(s.issues || '');
+            document.getElementById('resultReviewPoints').innerHTML = parseMarkdown(s.review_points || '');
+            document.getElementById('resultPenalty').innerHTML = parseMarkdown(s.review_penalty || '');
+            document.getElementById('resultQuestions').innerHTML = parseMarkdown(s.questions || '');
+
+            let replyHtml = '';
+            if (s.direction) replyHtml += parseMarkdown(s.direction);
+            if (s.direction && s.reply_draft) replyHtml += '<hr style="margin: 20px 0; border: none; border-top: 2px solid var(--gray-200);">';
+            if (s.reply_draft) replyHtml += parseMarkdown(s.reply_draft);
+            document.getElementById('resultReply').innerHTML = replyHtml;
 
             // Set meta info
             const domainMap = {
@@ -1108,7 +1114,7 @@
                 'general': '일반',
                 'construction': '건설'
             };
-            document.getElementById('metaDomain').textContent = domainMap[result.domain] || result.domain;
+            document.getElementById('metaDomain').textContent = domainMap[result.domain || 'auto'] || result.domain || '자동 판별';
             document.getElementById('metaDocType').textContent = document.querySelector('input[name="doc_type"]:checked').value;
 
             const statusText = result.is_demo ? '데모 결과' : '정상 분석 완료';
@@ -1176,8 +1182,9 @@
         // Event Listeners
         document.querySelectorAll('.tab-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const tabName = e.target.getAttribute('data-tab');
-                switchTab(tabName);
+                const button = e.target.closest('.tab-button');
+                const tabName = button.getAttribute('data-tab');
+                switchTab(tabName, button);
             });
         });
 
