@@ -566,6 +566,25 @@
             display: block;
         }
 
+        .file-preview-image {
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .file-preview-image img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .file-preview-image .preview-label {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 8px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header {
@@ -664,6 +683,10 @@
                     <div id="file-tab" class="tab-content">
                         <input type="file" id="fileInput" accept=".pdf,.txt,.jpg,.jpeg,.png">
                         <div class="file-preview" id="filePreview"></div>
+                        <div class="file-preview-image" id="filePreviewImage" style="display:none;">
+                            <img id="previewImg" src="" alt="미리보기">
+                            <div class="preview-label">업로드된 파일 미리보기</div>
+                        </div>
                     </div>
                 </div>
 
@@ -1158,13 +1181,59 @@
             });
         });
 
-        // File preview
+        // File preview with image/text rendering
         document.getElementById('fileInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
+            const preview = document.getElementById('filePreview');
+            const previewImage = document.getElementById('filePreviewImage');
+            const previewImg = document.getElementById('previewImg');
+
+            // Reset
+            previewImage.style.display = 'none';
+            previewImg.src = '';
+
             if (file) {
-                const preview = document.getElementById('filePreview');
                 preview.textContent = `📄 선택된 파일: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
                 preview.classList.add('active');
+
+                const fileName = file.name.toLowerCase();
+
+                // Image preview
+                if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        previewImg.src = ev.target.result;
+                        previewImage.style.display = 'block';
+                        previewImage.querySelector('.preview-label').textContent = '업로드된 이미지 미리보기';
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                // PDF preview (first page hint)
+                else if (fileName.endsWith('.pdf')) {
+                    previewImage.style.display = 'block';
+                    previewImg.src = '';
+                    previewImg.style.display = 'none';
+                    previewImage.querySelector('.preview-label').textContent = '📑 PDF 파일이 선택되었습니다. 검토 시작을 누르면 첫 페이지를 분석합니다.';
+                }
+
+                // Text preview
+                else if (fileName.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const text = ev.target.result;
+                        const truncated = text.length > 500 ? text.substring(0, 500) + '...' : text;
+                        previewImage.style.display = 'block';
+                        previewImg.style.display = 'none';
+                        previewImage.querySelector('.preview-label').innerHTML =
+                            '<div style="text-align:left; background:#f9fafb; padding:12px; border-radius:6px; font-family:monospace; font-size:0.8rem; white-space:pre-wrap; max-height:200px; overflow-y:auto; margin-top:8px;">' +
+                            truncated.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+                            '<div style="margin-top:6px; color:#6b7280;">텍스트 파일 미리보기 (처음 500자)</div>';
+                    };
+                    reader.readAsText(file);
+                }
+            } else {
+                preview.classList.remove('active');
             }
         });
 
