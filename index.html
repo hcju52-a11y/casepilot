@@ -84,15 +84,12 @@
         /* Main Layout */
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 30px;
             margin-bottom: 30px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         /* Card Styles */
@@ -715,53 +712,6 @@
                 </div>
             </div>
 
-            <!-- Right Column: Info -->
-            <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-info-circle"></i>
-                    사용 가이드
-                </div>
-                <div style="color: var(--gray-700); font-size: 0.95rem; line-height: 1.8;">
-                    <h3 style="color: var(--primary); margin-bottom: 12px; margin-top: 16px; font-size: 1rem;">
-                        <i class="fas fa-check-circle" style="color: var(--success); margin-right: 8px;"></i>
-                        단계별 진행
-                    </h3>
-                    <ol style="margin-left: 20px;">
-                        <li style="margin-bottom: 8px;"><strong>사건 유형</strong>을 선택합니다 (진정/고소/민원)</li>
-                        <li style="margin-bottom: 8px;"><strong>도메인</strong>을 지정하거나 자동 판별을 선택합니다</li>
-                        <li style="margin-bottom: 8px;">텍스트를 직접 입력하거나 문서 파일을 업로드합니다</li>
-                        <li style="margin-bottom: 8px;">"검토 시작" 버튼을 클릭합니다</li>
-                    </ol>
-
-                    <h3 style="color: var(--primary); margin-bottom: 12px; margin-top: 20px; font-size: 1rem;">
-                        <i class="fas fa-file-upload" style="color: var(--warning); margin-right: 8px;"></i>
-                        지원 파일 형식
-                    </h3>
-                    <ul style="margin-left: 20px;">
-                        <li style="margin-bottom: 6px;">PDF (.pdf)</li>
-                        <li style="margin-bottom: 6px;">텍스트 (.txt)</li>
-                        <li style="margin-bottom: 6px;">이미지 (.jpg, .jpeg, .png)</li>
-                    </ul>
-
-                    <h3 style="color: var(--primary); margin-bottom: 12px; margin-top: 20px; font-size: 1rem;">
-                        <i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 8px;"></i>
-                        팁
-                    </h3>
-                    <ul style="margin-left: 20px;">
-                        <li style="margin-bottom: 6px;">샘플 데이터로 미리 테스트할 수 있습니다</li>
-                        <li style="margin-bottom: 6px;">API 연결 없이 데모 결과를 확인할 수 있습니다</li>
-                        <li style="margin-bottom: 6px;">분석 결과는 여러 섹션으로 구분됩니다</li>
-                    </ul>
-
-                    <h3 style="color: var(--primary); margin-bottom: 12px; margin-top: 20px; font-size: 1rem;">
-                        <i class="fas fa-globe" style="color: var(--primary); margin-right: 8px;"></i>
-                        by Syndicate Lab
-                    </h3>
-                    <p style="font-size: 0.85rem; color: var(--gray-500);">
-                        정부 공공 서비스 검토 보조도구
-                    </p>
-                </div>
-            </div>
         </div>
 
         <!-- Loading Spinner -->
@@ -854,6 +804,53 @@
             <div class="reset-button-container">
                 <button class="btn-reset" onclick="resetForm()">새로 분석하기</button>
             </div>
+        </div>
+
+        <!-- 사용 가이드 (하단 배치) -->
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-title">
+                <i class="fas fa-info-circle"></i>
+                사용 가이드
+            </div>
+            <div style="color: var(--gray-700); font-size: 0.95rem; line-height: 1.8; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                <div>
+                    <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1rem;">
+                        <i class="fas fa-check-circle" style="color: var(--success); margin-right: 8px;"></i>
+                        단계별 진행
+                    </h3>
+                    <ol style="margin-left: 20px;">
+                        <li style="margin-bottom: 6px;"><strong>사건 유형</strong> 선택</li>
+                        <li style="margin-bottom: 6px;"><strong>도메인</strong> 지정 또는 자동 판별</li>
+                        <li style="margin-bottom: 6px;">텍스트 입력 또는 파일 업로드</li>
+                        <li style="margin-bottom: 6px;">"검토 시작" 클릭</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1rem;">
+                        <i class="fas fa-file-upload" style="color: var(--warning); margin-right: 8px;"></i>
+                        지원 파일 형식
+                    </h3>
+                    <ul style="margin-left: 20px;">
+                        <li style="margin-bottom: 6px;">PDF (.pdf)</li>
+                        <li style="margin-bottom: 6px;">텍스트 (.txt)</li>
+                        <li style="margin-bottom: 6px;">이미지 (.jpg, .jpeg, .png)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1rem;">
+                        <i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 8px;"></i>
+                        팁
+                    </h3>
+                    <ul style="margin-left: 20px;">
+                        <li style="margin-bottom: 6px;">샘플 데이터로 미리 테스트 가능</li>
+                        <li style="margin-bottom: 6px;">API 없이 데모 결과 확인 가능</li>
+                        <li style="margin-bottom: 6px;">분석 결과는 6개 섹션으로 구분</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: 16px; text-align: right;">
+                <i class="fas fa-globe" style="margin-right: 6px;"></i>by Syndicate Lab — 정부 공공 서비스 검토 보조도구
+            </p>
         </div>
 
         <!-- Disclaimer -->
