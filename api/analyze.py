@@ -64,7 +64,16 @@ def build_user_prompt(text: str, doc_type: str) -> str:
 
 
 def build_vision_prompt(doc_type: str) -> str:
-    return f"이 이미지는 접수된 {doc_type}입니다. 문서 내용을 읽고 초동분석을 수행해주세요."
+    return f"""이 이미지는 접수된 {doc_type} 문서입니다.
+
+[중요 지시사항]
+1. 문서를 꼼꼼히 읽고, 기재된 내용만을 근거로 분석하세요.
+2. 문서에 언급되지 않은 내용(예: 퇴직금)은 쟁점에 포함하지 마세요.
+3. 진정서 양식에 "건설공사" 난(공사명칭, 현장소재지, 건설회사 등)이 기재되어 있으면 반드시 건설 도메인으로 분석하세요.
+   - 건설 사건일 경우: 원수급/하수급 관계, 임금지급 주체, 실제 사용자를 구분하여 검토하세요.
+4. 문서에 기재된 금액, 기간, 당사자 정보를 정확히 읽어서 사건 개요에 반영하세요.
+
+초동분석을 수행해주세요."""
 
 
 # ────────────────────────────────────────────
@@ -348,6 +357,15 @@ def get_system_prompt(domain_context: str = "") -> str:
     return prompt
 
 
+def get_vision_system_prompt() -> str:
+    """이미지/PDF 분석용: 항상 건설 규칙을 포함한 시스템 프롬프트"""
+    law_context = get_law_context()
+    prompt = SYSTEM_PROMPT.format(law_context=law_context)
+    # 일반 + 건설 규칙 모두 포함
+    all_context = build_prompt_context("general") + "\n\n" + build_prompt_context("construction")
+    return f"{prompt}\n\n{all_context}"
+
+
 def analyze_text(text: str, doc_type: str, system_prompt: str, api_key: str) -> str:
     from openai import OpenAI
     user_prompt = build_user_prompt(text, doc_type)
@@ -466,6 +484,8 @@ class handler(BaseHTTPRequestHandler):
                         system_prompt = get_system_prompt(domain_context)
                     response_text = analyze_text(decoded_text, doc_type, system_prompt, api_key)
                 elif file_name.lower().endswith(".pdf"):
+                    # PDF/이미지는 건설 규칙 포함된 Vision 프롬프트 사용
+                    vision_prompt = get_vision_system_prompt()
                     try:
                         import fitz
                         doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -475,12 +495,13 @@ class handler(BaseHTTPRequestHandler):
                         pix = page.get_pixmap(matrix=mat)
                         img_bytes = pix.tobytes("png")
                         doc.close()
-                        response_text = analyze_vision(img_bytes, "image/png", doc_type, system_prompt, api_key)
+                        response_text = analyze_vision(img_bytes, "image/png", doc_type, vision_prompt, api_key)
                     except ImportError:
-                        response_text = analyze_vision(file_bytes, mime_type, doc_type, system_prompt, api_key)
+                        response_text = analyze_vision(file_bytes, mime_type, doc_type, vision_prompt, api_key)
                 else:
-                    # 이미지 파일 → Vision 분석
-                    response_text = analyze_vision(file_bytes, mime_type, doc_type, system_prompt, api_key)
+                    # 이미지 파일 → Vision 분석 (건설 규칙 포함)
+                    vision_prompt = get_vision_system_prompt()
+                    response_text = analyze_vision(file_bytes, mime_type, doc_type, vision_prompt, api_key)
 
                 # Vision/파일 분석 결과에서 사건 유형 + 도메인 재판별
                 if response_text:
