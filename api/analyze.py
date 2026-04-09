@@ -224,7 +224,26 @@ CONSTRUCTION_KEYWORDS = [
 ]
 
 
+# 진정서 양식의 "건설공사" 난 필드명 — 하나라도 있으면 건설 확정
+CONSTRUCTION_FORM_FIELDS = [
+    "건설공사", "공사명칭", "현장소재지", "건설회사", "직장수급인",
+    "현장전화", "준공여부",
+]
+
+
 def keyword_classify(text: str) -> dict:
+    # 1단계: 진정서 양식 건설공사 난 필드 감지 (강력 신호)
+    form_hits = [kw for kw in CONSTRUCTION_FORM_FIELDS if kw in text]
+    if form_hits:
+        return {
+            "domain": "construction",
+            "confidence": 0.95,
+            "keyword_hits": form_hits,
+            "hit_count": len(form_hits),
+            "reason": "진정서 건설공사 난 감지",
+        }
+
+    # 2단계: 일반 키워드 매칭
     hits = [kw for kw in CONSTRUCTION_KEYWORDS if kw in text]
     hit_count = len(hits)
     if hit_count >= 5:
