@@ -212,14 +212,25 @@ def is_ollama_mode() -> bool:
     return model_choice == "🏠 Gemma 로컬 (Ollama)"
 
 
+def _get_secret(key: str) -> str:
+    """로컬(.env) + Streamlit Cloud(secrets) 모두 대응"""
+    val = os.environ.get(key, "")
+    if not val:
+        try:
+            val = st.secrets.get(key, "")
+        except Exception:
+            val = ""
+    return val
+
+
 def get_api_key() -> str:
     """선택된 모델에 맞는 API Key 반환 (Ollama는 불필요)"""
     if is_ollama_mode():
         return "__ollama_local__"
     if model_choice == "Gemini (Google)":
-        return os.environ.get("GEMINI_API_KEY", "")
+        return _get_secret("GEMINI_API_KEY")
     else:
-        return os.environ.get("OPENAI_API_KEY", "")
+        return _get_secret("OPENAI_API_KEY")
 
 
 def run_text_analysis(text: str, domain_context: str = "") -> str:
@@ -243,7 +254,7 @@ def run_vision_analysis(image_bytes: bytes, mime_type: str, domain_context: str 
     if is_ollama_mode():
         return analyze_with_vision_ollama(image_bytes, mime_type, doc_type, system_prompt, model=selected_ollama_model)
 
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = _get_secret("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("Gemini API Key가 필요합니다. 이미지 분석은 Gemini만 지원합니다.")
     return analyze_with_vision_gemini(image_bytes, mime_type, doc_type, system_prompt, api_key)
@@ -310,7 +321,7 @@ if st.button("🔎 검토 시작", type="primary", use_container_width=True):
             st.stop()
     elif not api_key:
         if input_mode == "파일 업로드" and file_images:
-            gemini_key = os.environ.get("GEMINI_API_KEY", "")
+            gemini_key = _get_secret("GEMINI_API_KEY")
             if not gemini_key:
                 st.error("API Key가 설정되지 않았습니다. .env 파일 또는 Streamlit secrets를 확인해주세요.")
                 st.stop()
