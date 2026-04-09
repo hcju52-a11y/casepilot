@@ -630,43 +630,15 @@
                 <!-- Error Message -->
                 <div class="error-message" id="errorMessage"></div>
 
-                <!-- Input Method Tabs -->
+                <!-- File Upload -->
                 <div class="form-section">
-                    <label>입력 방식</label>
-                    <div class="tabs">
-                        <button class="tab-button active" data-tab="text-tab">📝 텍스트 입력</button>
-                        <button class="tab-button" data-tab="file-tab">📎 파일 업로드</button>
-                    </div>
-
-                    <!-- Text Input -->
-                    <div id="text-tab" class="tab-content active">
-                        <textarea id="textInput" placeholder="진정서 또는 민원 문서의 내용을 입력하세요..."></textarea>
-                    </div>
-
-                    <!-- File Upload -->
-                    <div id="file-tab" class="tab-content">
-                        <input type="file" id="fileInput" accept=".pdf,.txt,.jpg,.jpeg,.png">
-                        <div class="file-preview" id="filePreview"></div>
-                        <div class="file-preview-image" id="filePreviewImage" style="display:none;">
-                            <img id="previewImg" src="" alt="미리보기">
-                            <div class="preview-label">업로드된 파일 미리보기</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sample Data Buttons -->
-                <div class="form-section">
-                    <label>샘플 불러오기</label>
-                    <div class="sample-buttons">
-                        <button class="btn-secondary" onclick="loadSample('wage')">
-                            <i class="fas fa-file"></i> 임금체불
-                        </button>
-                        <button class="btn-secondary" onclick="loadSample('dismissal')">
-                            <i class="fas fa-file"></i> 해고 관련
-                        </button>
-                        <button class="btn-secondary" onclick="loadSample('contract')">
-                            <i class="fas fa-file"></i> 계약서 미작성
-                        </button>
+                    <label>📎 사건 파일 업로드</label>
+                    <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png">
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-top:8px;">지원 형식: JPG, PNG, PDF</p>
+                    <div class="file-preview" id="filePreview"></div>
+                    <div class="file-preview-image" id="filePreviewImage" style="display:none;">
+                        <img id="previewImg" src="" alt="미리보기">
+                        <div class="preview-label">업로드된 이미지 미리보기</div>
                     </div>
                 </div>
 
@@ -993,9 +965,6 @@
             const errorMsg = document.getElementById('errorMessage');
             errorMsg.classList.remove('active');
 
-            // Get form values
-            const activeTab = document.querySelector('.tab-content.active').id;
-
             // 사건 유형 + 도메인 모두 자동 판별
             let payload = {
                 doc_type: 'auto',
@@ -1005,28 +974,20 @@
             // 배너 숨기기 (새 분석 시작)
             document.getElementById('docTypeBanner').style.display = 'none';
 
-            if (activeTab === 'text-tab') {
-                const text = document.getElementById('textInput').value.trim();
-                if (!text) {
-                    showError('텍스트를 입력해주세요.');
-                    return;
-                }
-                payload.text = text;
-            } else {
-                const fileInput = document.getElementById('fileInput');
-                if (!fileInput.files.length) {
-                    showError('파일을 선택해주세요.');
-                    return;
-                }
-                const file = fileInput.files[0];
-                try {
-                    const base64 = await encodeFileAsBase64(file);
-                    payload.file_base64 = base64;
-                    payload.file_name = file.name;
-                } catch (err) {
-                    showError('파일 읽기에 실패했습니다.');
-                    return;
-                }
+            // 파일 업로드 확인
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                showError('파일을 선택해주세요.');
+                return;
+            }
+            const file = fileInput.files[0];
+            try {
+                const base64 = await encodeFileAsBase64(file);
+                payload.file_base64 = base64;
+                payload.file_name = file.name;
+            } catch (err) {
+                showError('파일 읽기에 실패했습니다.');
+                return;
             }
 
             // Show loading
@@ -1114,13 +1075,12 @@
         }
 
         function resetForm() {
-            document.getElementById('textInput').value = '';
             document.getElementById('fileInput').value = '';
             document.getElementById('filePreview').classList.remove('active');
+            document.getElementById('filePreviewImage').style.display = 'none';
             document.getElementById('errorMessage').classList.remove('active');
             document.getElementById('resultsContainer').classList.remove('active');
             document.getElementById('docTypeBanner').style.display = 'none';
-            document.getElementById('textInput').focus();
         }
 
         function showLoading() {
