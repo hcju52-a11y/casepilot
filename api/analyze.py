@@ -240,6 +240,32 @@ def resolve_domain(user_selection: str, extracted_text: str) -> tuple:
 
 
 # ────────────────────────────────────────────
+# 사건 유형 자동 분류
+# ────────────────────────────────────────────
+
+DOC_TYPE_KEYWORDS = {
+    "고소": ["고소", "고발", "고소장", "고발장", "고소(고발)"],
+    "진정": ["진정", "진정서", "진정인"],
+    "민원": ["민원", "민원서", "민원인", "질의", "건의"],
+}
+
+
+def detect_doc_type(text: str) -> tuple:
+    """텍스트에서 사건 유형을 자동 판별.
+    Returns: (doc_type: str, detection_info: dict)
+    """
+    scores = {}
+    for dtype, keywords in DOC_TYPE_KEYWORDS.items():
+        hits = [kw for kw in keywords if kw in text]
+        scores[dtype] = len(hits)
+
+    best = max(scores, key=scores.get)
+    if scores[best] > 0:
+        return best, {"method": "auto", "detected": best, "scores": scores}
+    return "기타", {"method": "fallback", "detected": "기타", "scores": scores}
+
+
+# ────────────────────────────────────────────
 # 섹션 파싱
 # ────────────────────────────────────────────
 
@@ -369,7 +395,7 @@ class handler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             data = json.loads(body.decode("utf-8"))
 
-            doc_type = data.get("doc_type", "진정")
+            doc_type_option = data.get("doc_type", "진정")
             domain_option = data.get("domain", "auto")
             text = data.get("text", "")
             file_base64 = data.get("file_base64", "")
@@ -379,6 +405,16 @@ class handler(BaseHTTPRequestHandler):
             if not api_key:
                 self._send_json(500, {"error": "OPENAI_API_KEY 환경변수가 설정되지 않았습니다."})
                 return
+
+            # 사건 유형 자동 판별
+            doc_type_info = None
+            if doc_type_option == "auto" and text:
+                doc_type, doc_type_info = detect_doc_type(text)
+            elif doc_type_option == "auto":
+                doc_type = "진정"  # 파일 업로드 시 기본값 (Vision 분석 후 재판별)
+                doc_type_info = {"method": "default", "detected": "진정"}
+            else:
+                doc_type = doc_type_option
 
             # 도메인 결정
             text_for_classify = text
@@ -393,6 +429,9 @@ class handler(BaseHTTPRequestHandler):
 
                 if file_name.lower().endswith(".txt"):
                     decoded_text = file_bytes.decode("utf-8", errors="replace")
+                    # txt 파일에서도 사건 유형 자동 판별
+                    if doc_type_option == "auto":
+                        doc_type, doc_type_info = detect_doc_type(decoded_text)
                     response_text = analyze_text(decoded_text, doc_type, system_prompt, api_key)
                 elif file_name.lower().endswith(".pdf"):
                     try:
@@ -408,7 +447,15 @@ class handler(BaseHTTPRequestHandler):
                     except ImportError:
                         response_text = analyze_vision(file_bytes, mime_type, doc_type, system_prompt, api_key)
                 else:
+                    # 이미지 파일 → Vision 분석
                     response_text = analyze_vision(file_bytes, mime_type, doc_type, system_prompt, api_key)
+
+                # Vision/파일 분석 결과에서 사건 유형 재판별
+                if doc_type_option == "auto" and response_text:
+                    detected_type, det_info = detect_doc_type(response_text)
+                    if det_info["method"] != "fallback":
+                        doc_type = detected_type
+                        doc_type_info = det_info
             elif text:
                 response_text = analyze_text(text, doc_type, system_prompt, api_key)
             else:
@@ -417,12 +464,17 @@ class handler(BaseHTTPRequestHandler):
 
             sections = parse_response(response_text)
 
-            self._send_json(200, {
+            result = {
                 "sections": sections,
                 "domain": domain,
                 "classification_info": classification_info,
+                "doc_type": doc_type,
                 "is_demo": False,
-            })
+            }
+            if doc_type_info:
+                result["doc_type_info"] = doc_type_info
+
+            self._send_json(200, result)
 
         except Exception as e:
             self._send_json(500, {"error": str(e)})

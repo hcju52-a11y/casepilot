@@ -635,7 +635,11 @@
                     <label>사건 유형 선택</label>
                     <div class="radio-group">
                         <div class="radio-item">
-                            <input type="radio" id="docType1" name="doc_type" value="진정" checked>
+                            <input type="radio" id="docType0" name="doc_type" value="auto" checked>
+                            <label for="docType0" style="color: var(--primary); font-weight: 600;">자동 판별</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="docType1" name="doc_type" value="진정">
                             <label for="docType1">진정</label>
                         </div>
                         <div class="radio-item">
@@ -1112,7 +1116,15 @@
                 'construction': '건설'
             };
             document.getElementById('metaDomain').textContent = domainMap[result.domain || 'auto'] || result.domain || '자동 판별';
-            document.getElementById('metaDocType').textContent = document.querySelector('input[name="doc_type"]:checked').value;
+
+            // 사건 유형: API 반환값 우선 표시 (자동 판별 시)
+            const selectedDocType = document.querySelector('input[name="doc_type"]:checked').value;
+            if (result.doc_type && selectedDocType === 'auto') {
+                const autoLabel = result.doc_type_info ? ' (자동)' : '';
+                document.getElementById('metaDocType').textContent = result.doc_type + autoLabel;
+            } else {
+                document.getElementById('metaDocType').textContent = selectedDocType === 'auto' ? '자동 판별' : selectedDocType;
+            }
 
             const statusText = result.is_demo ? '데모 결과' : '정상 분석 완료';
             document.getElementById('metaStatus').textContent = statusText;
