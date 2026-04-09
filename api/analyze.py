@@ -208,10 +208,15 @@ def build_prompt_context(domain: str) -> str:
 # ────────────────────────────────────────────
 
 CONSTRUCTION_KEYWORDS = [
+    # 기존 키워드
     "원수급", "하도급", "일용직", "공사현장", "노무비",
     "타워크레인", "현장소장", "출역", "기성",
     "건설근로자공제회", "하수급", "원청", "하청",
     "공사", "시공", "철근", "콘크리트", "반장",
+    # 진정서 양식 건설공사 난 관련
+    "건설공사", "공사명칭", "공사명", "현장소재지", "준공여부",
+    "건설회사", "직장수급인", "직영", "개인업자",
+    "현장전화", "공사중", "준공",
 ]
 
 
@@ -429,9 +434,13 @@ class handler(BaseHTTPRequestHandler):
 
                 if file_name.lower().endswith(".txt"):
                     decoded_text = file_bytes.decode("utf-8", errors="replace")
-                    # txt 파일에서도 사건 유형 자동 판별
+                    # txt 파일에서 사건 유형 + 도메인 자동 판별
                     if doc_type_option == "auto":
                         doc_type, doc_type_info = detect_doc_type(decoded_text)
+                    if domain_option == "auto":
+                        domain, classification_info = resolve_domain("auto", decoded_text)
+                        domain_context = build_prompt_context(domain)
+                        system_prompt = get_system_prompt(domain_context)
                     response_text = analyze_text(decoded_text, doc_type, system_prompt, api_key)
                 elif file_name.lower().endswith(".pdf"):
                     try:
@@ -450,12 +459,15 @@ class handler(BaseHTTPRequestHandler):
                     # 이미지 파일 → Vision 분석
                     response_text = analyze_vision(file_bytes, mime_type, doc_type, system_prompt, api_key)
 
-                # Vision/파일 분석 결과에서 사건 유형 재판별
-                if doc_type_option == "auto" and response_text:
-                    detected_type, det_info = detect_doc_type(response_text)
-                    if det_info["method"] != "fallback":
-                        doc_type = detected_type
-                        doc_type_info = det_info
+                # Vision/파일 분석 결과에서 사건 유형 + 도메인 재판별
+                if response_text:
+                    if doc_type_option == "auto":
+                        detected_type, det_info = detect_doc_type(response_text)
+                        if det_info["method"] != "fallback":
+                            doc_type = detected_type
+                            doc_type_info = det_info
+                    if domain_option == "auto":
+                        domain, classification_info = resolve_domain("auto", response_text)
             elif text:
                 response_text = analyze_text(text, doc_type, system_prompt, api_key)
             else:

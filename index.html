@@ -630,16 +630,6 @@
                 <!-- Error Message -->
                 <div class="error-message" id="errorMessage"></div>
 
-                <!-- Domain -->
-                <div class="form-section">
-                    <label>도메인 선택</label>
-                    <select id="domain">
-                        <option value="auto">자동 판별</option>
-                        <option value="general">일반</option>
-                        <option value="construction">건설</option>
-                    </select>
-                </div>
-
                 <!-- Input Method Tabs -->
                 <div class="form-section">
                     <label>입력 방식</label>
@@ -701,6 +691,7 @@
         <div id="docTypeBanner" style="display:none; max-width:800px; margin:0 auto 20px; padding:14px 20px; border-radius:12px; background:linear-gradient(135deg, #eef2ff, #e0e7ff); border:1px solid #c7d2fe; text-align:center; font-size:1.05rem;">
             <span style="font-weight:700; color:#4338ca;">📋 사건 유형:</span>
             <span id="docTypeBannerValue" style="font-weight:800; color:#312e81; font-size:1.15rem; margin-left:8px;"></span>
+            <span id="domainBadge" style="display:none; font-weight:700; color:#fff; background:#d97706; padding:2px 10px; border-radius:6px; font-size:0.85rem; margin-left:10px;">건설</span>
             <span id="docTypeBannerAuto" style="font-size:0.8rem; color:#6366f1; margin-left:6px;">(자동 판별)</span>
         </div>
 
@@ -1003,13 +994,12 @@
             errorMsg.classList.remove('active');
 
             // Get form values
-            const domain = document.getElementById('domain').value;
             const activeTab = document.querySelector('.tab-content.active').id;
 
-            // 사건 유형은 항상 자동 판별
+            // 사건 유형 + 도메인 모두 자동 판별
             let payload = {
                 doc_type: 'auto',
-                domain: domain
+                domain: 'auto'
             };
 
             // 배너 숨기기 (새 분석 시작)
@@ -1107,6 +1097,10 @@
             document.getElementById('docTypeBanner').style.display = 'block';
             document.getElementById('metaDocType').textContent = detectedType + (result.doc_type_info ? ' (자동)' : '');
 
+            // 건설 도메인 배지
+            const isConstruction = result.domain === 'construction';
+            document.getElementById('domainBadge').style.display = isConstruction ? 'inline' : 'none';
+
             const statusText = result.is_demo ? '데모 결과' : '정상 분석 완료';
             document.getElementById('metaStatus').textContent = statusText;
 
@@ -1126,7 +1120,6 @@
             document.getElementById('errorMessage').classList.remove('active');
             document.getElementById('resultsContainer').classList.remove('active');
             document.getElementById('docTypeBanner').style.display = 'none';
-            document.getElementById('domain').value = 'auto';
             document.getElementById('textInput').focus();
         }
 
