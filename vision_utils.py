@@ -280,3 +280,38 @@ def analyze_text_openai(text: str, doc_type: str, system_prompt: str, api_key: s
         ],
     )
     return response.choices[0].message.content
+
+
+def analyze_with_vision_openai(image_bytes: bytes, mime_type: str, doc_type: str,
+                                system_prompt: str, api_key: str) -> str:
+    """OpenAI GPT-4o Vision API — 이미지 분석"""
+    from openai import OpenAI
+
+    from prompts import build_vision_prompt
+
+    user_prompt = build_vision_prompt(doc_type)
+    img_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    client = OpenAI(api_key=api_key)
+    response = client.chat.completions.create(
+        model=OPENAI_MODEL,
+        max_tokens=4096,
+        temperature=0.1,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{img_b64}",
+                            "detail": "high",
+                        },
+                    },
+                    {"type": "text", "text": user_prompt},
+                ],
+            },
+        ],
+    )
+    return response.choices[0].message.content

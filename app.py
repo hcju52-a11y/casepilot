@@ -12,9 +12,8 @@ from vision_utils import (
     pdf_to_images,
     get_mime_type,
     fix_image_orientation,
-    analyze_with_vision_gemini,
-    analyze_text_gemini,
     analyze_text_openai,
+    analyze_with_vision_openai,
     analyze_with_vision_ollama,
     analyze_text_ollama,
 )
@@ -22,11 +21,10 @@ from vision_utils import (
 # --- 환경 변수 로드 ---
 load_dotenv()
 
-# --- LLM 백엔드 (gemini | openai | ollama) ---
-LLM_BACKEND = os.getenv("LLM_BACKEND", "gemini")
+# --- LLM 백엔드 (openai | ollama) ---
+LLM_BACKEND = os.getenv("LLM_BACKEND", "openai")
 
 # --- 모델 상수 ---
-GEMINI_MODEL = "gemini-2.5-flash"
 OPENAI_MODEL = "gpt-4o"
 
 # --- 섹션 제목 (파싱 anchor) ---
@@ -79,10 +77,10 @@ with st.sidebar:
         st.rerun()
 
     st.header("🔧 AI 모델 선택")
-    _default_idx = 2 if LLM_BACKEND == "ollama" else 0
+    _default_idx = 1 if LLM_BACKEND == "ollama" else 0
     model_choice = st.selectbox(
         "모델",
-        ["Gemini (Google)", "GPT-4o (OpenAI)", "🏠 Gemma 로컬 (Ollama)"],
+        ["GPT-4o (OpenAI)", "🏠 Gemma 로컬 (Ollama)"],
         index=_default_idx,
         label_visibility="collapsed",
     )
@@ -227,10 +225,7 @@ def get_api_key() -> str:
     """선택된 모델에 맞는 API Key 반환 (Ollama는 불필요)"""
     if is_ollama_mode():
         return "__ollama_local__"
-    if model_choice == "Gemini (Google)":
-        return _get_secret("GEMINI_API_KEY")
-    else:
-        return _get_secret("OPENAI_API_KEY")
+    return _get_secret("OPENAI_API_KEY")
 
 
 def run_text_analysis(text: str, domain_context: str = "") -> str:
@@ -241,10 +236,7 @@ def run_text_analysis(text: str, domain_context: str = "") -> str:
         return analyze_text_ollama(text, doc_type, system_prompt, model=selected_ollama_model)
 
     api_key = get_api_key()
-    if model_choice == "Gemini (Google)":
-        return analyze_text_gemini(text, doc_type, system_prompt, api_key)
-    else:
-        return analyze_text_openai(text, doc_type, system_prompt, api_key)
+    return analyze_text_openai(text, doc_type, system_prompt, api_key)
 
 
 def run_vision_analysis(image_bytes: bytes, mime_type: str, domain_context: str = "") -> str:
@@ -254,10 +246,10 @@ def run_vision_analysis(image_bytes: bytes, mime_type: str, domain_context: str 
     if is_ollama_mode():
         return analyze_with_vision_ollama(image_bytes, mime_type, doc_type, system_prompt, model=selected_ollama_model)
 
-    api_key = _get_secret("GEMINI_API_KEY")
+    api_key = get_api_key()
     if not api_key:
-        raise ValueError("Gemini API Key가 필요합니다. 이미지 분석은 Gemini만 지원합니다.")
-    return analyze_with_vision_gemini(image_bytes, mime_type, doc_type, system_prompt, api_key)
+        raise ValueError("OpenAI API Key가 필요합니다. .env 파일 또는 Streamlit secrets를 확인해주세요.")
+    return analyze_with_vision_openai(image_bytes, mime_type, doc_type, system_prompt, api_key)
 
 
 # --- 메인 영역: 입력 방식 선택 ---
@@ -320,14 +312,8 @@ if st.button("🔎 검토 시작", type="primary", use_container_width=True):
             st.error("⚠️ Ollama 서버에 연결할 수 없습니다. `ollama serve` 명령으로 먼저 실행해주세요.")
             st.stop()
     elif not api_key:
-        if input_mode == "파일 업로드" and file_images:
-            gemini_key = _get_secret("GEMINI_API_KEY")
-            if not gemini_key:
-                st.error("API Key가 설정되지 않았습니다. .env 파일 또는 Streamlit secrets를 확인해주세요.")
-                st.stop()
-        else:
-            st.error("API Key가 설정되지 않았습니다. .env 파일 또는 Streamlit secrets를 확인해주세요.")
-            st.stop()
+        st.error("OpenAI API Key가 설정되지 않았습니다. .env 파일 또는 Streamlit secrets를 확인해주세요.")
+        st.stop()
 
     # --- 도메인 결정 ---
     _text_for_classify = ""
@@ -380,9 +366,7 @@ if st.button("🔎 검토 시작", type="primary", use_container_width=True):
                     st.warning(f"API 호출 중 오류가 발생했습니다: {e}")
                     display_demo_result()
         elif file_images is not None:
-            # 이미지/PDF → Vision 분석 (Gemini만)
-            if model_choice == "GPT-4o (OpenAI)":
-                st.info("이미지/PDF 분석은 Gemini 또는 Gemma 로컬만 지원합니다. Gemini로 자동 전환합니다.")
+            # 이미지/PDF → Vision 분석 (GPT-4o 또는 Gemma 로컬)
             vision_spinner = "🏠 로컬 AI가 이미지를 분석 중입니다... (로컬 환경이라 약간 시간이 소요됩니다)" if is_ollama_mode() else "AI가 이미지를 분석 중입니다..."
             with st.spinner(vision_spinner):
                 try:
